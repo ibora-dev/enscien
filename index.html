@@ -2,140 +2,99 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Analyse Acoustique : I, 10ⁿ et dB</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Visualiseur Ultra-Simple : +3 dB = Énergie x2</title>
     <style>
-        body { font-family: "Courier New", monospace; background: #fff; color: #000; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { width: 850px; border: 2px solid #000; padding: 25px; box-shadow: 5px 5px 0px #000; }
-        h1 { font-size: 0.9rem; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; text-transform: uppercase; }
+        body { font-family: sans-serif; background: #f0f0f0; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: #fff; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 450px; }
         
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; margin-bottom: 25px; border: 1px solid #000; }
-        .data-box { border-right: 1px solid #000; padding: 15px; text-align: center; }
-        .data-box:last-child { border-right: none; }
-        .label { font-size: 0.7rem; font-weight: bold; display: block; margin-bottom: 8px; }
-        .value { font-size: 1.4rem; font-weight: bold; }
-        
-        .chart-container { height: 350px; margin-bottom: 20px; border: 1px solid #eee; }
-        .controls { display: flex; justify-content: center; gap: 20px; padding-top: 10px; }
-        
-        button { background: #000; color: #fff; border: 1px solid #000; padding: 12px 20px; cursor: pointer; font-family: monospace; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #fff; color: #000; }
-        .btn-reset { background: #fff; color: #000; }
+        h1 { font-size: 1.2rem; margin-bottom: 5px; color: #555; }
+        p.subtitle { font-size: 0.9rem; color: #888; margin-top: 0; margin-bottom: 25px; }
 
-        .footer-note { font-size: 0.7rem; text-align: center; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
+        .viz-area { height: 250px; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 20px; overflow: hidden; border-radius: 10px; background: #fafafa; border: 1px solid #eee; }
+        
+        /* Le cercle qui représente l'énergie physique */
+        .sound-circle { width: 40px; height: 40px; background: radial-gradient(circle, #ff6b6b 0%, #ee5253 100%); border-radius: 50%; box-shadow: 0 5px 15px rgba(238, 82, 83, 0.4); transition: width 0.4s ease-out, height 0.4s ease-out; position: absolute; }
+
+        .data-display { display: flex; justify-content: space-around; background: #333; color: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; }
+        .data-box { font-size: 1.1rem; }
+        .data-label { display: block; font-size: 0.75rem; color: #aaa; font-weight: normal; text-transform: uppercase; margin-bottom: 3px; }
+
+        .controls { display: flex; gap: 15px; justify-content: center; }
+        button { padding: 12px 24px; font-size: 1rem; cursor: pointer; border: none; border-radius: 8px; background: #2e86de; color: white; font-weight: bold; transition: background 0.2s, transform 0.1s; }
+        button:hover { background: #1b6ca8; }
+        button:active { transform: scale(0.97); }
+        button.reset { background: #fff; color: #333; border: 1px solid #ccc; }
+        button.reset:hover { background: #eee; }
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Interface de mesure : Relation entre L, I et Rapport 10ⁿ</h1>
+    <h1>🔊 Visualiseur d'Énergie Sonore</h1>
+    <p class="subtitle">La taille du cercle montre la puissance réelle du bruit.</p>
     
-    <div class="data-grid">
-        <div class="data-box">
-            <span class="label">NIVEAU (L)</span>
-            <span class="value" id="dbVal">40</span> dB
-        </div>
-        <div class="data-box">
-            <span class="label">RAPPORT (I/I₀)</span>
-            <span class="value" id="ratioVal">10<sup>4.00</sup></span>
-        </div>
-        <div class="data-box">
-            <span class="label">INTENSITÉ (I)</span>
-            <span class="value" id="iVal">1.0e-8</span> W/m²
-        </div>
+    <div class="viz-area">
+        <div class="sound-circle" id="circle"></div>
     </div>
 
-    <div class="chart-container">
-        <canvas id="mainChart"></canvas>
+    <div class="data-display">
+        <div class="data-box">
+            <span class="data-label">Niveau (Décibels)</span>
+            <span id="dbVal">40</span> dB
+        </div>
+        <div class="data-box">
+            <span class="data-label">Puissance Physique</span>
+            x <span id="pwrVal">1</span>
+        </div>
     </div>
 
     <div class="controls">
-        <button onclick="step(3)">AUGMENTER (+3 dB)</button>
-        <button onclick="step(-3)">DIMINUER (-3 dB)</button>
-        <button class="btn-reset" onclick="reset()">RÉINITIALISER</button>
-    </div>
-
-    <div class="footer-note">
-        Modèle basé sur le Doc 4 | I₀ = 10⁻¹² W/m² | ΔL = 10·log(I₂/I₁)
+        <button onclick="step(-3)">- 3 dB</button>
+        <button onclick="step(3)">+ 3 dB</button>
+        <button class="reset" onclick="reset()">RESET</button>
     </div>
 </div>
 
 <script>
+    // État initial (Doc 4)
     let L = 40;
-    let I = 1e-8;
-    const I0 = 1e-12;
+    let relativePower = 1;
+    let baseSize = 40; // Taille initiale du cercle en pixels
 
-    let labels = [40];
-    let dataPoints = [1e-8];
+    function updateViz() {
+        // La règle d'or : +3dB = Puissance physique x 2
+        // On augmente le diamètre du cercle proportionnellement à la puissance relative
+        let newSize = baseSize * relativePower;
+        
+        // Limite pour ne pas dépasser l'écran
+        newSize = Math.min(newSize, 350);
 
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: dataPoints,
-                borderColor: '#000',
-                borderWidth: 2,
-                pointRadius: 5,
-                pointBackgroundColor: '#000',
-                fill: false,
-                tension: 0.2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { 
-                    title: { display: true, text: 'Intensité I (W/m²)', color: '#000', font: { weight: 'bold' } },
-                    grid: { color: '#f0f0f0' },
-                    ticks: { 
-                        color: '#000',
-                        // Formate les étiquettes en notation scientifique propre
-                        callback: function(value) {
-                            return value.toExponential(1);
-                        }
-                    }
-                },
-                x: { 
-                    title: { display: true, text: 'Niveau sonore mesuré (dB)', color: '#000', font: { weight: 'bold' } },
-                    ticks: { color: '#000' }
-                }
-            }
-        }
-    });
+        const circle = document.getElementById('circle');
+        circle.style.width = newSize + "px";
+        circle.style.height = newSize + "px";
+        
+        document.getElementById('dbVal').innerText = L;
+        document.getElementById('pwrVal').innerText = relativePower;
+    }
 
     function step(change) {
         L += change;
-        // On multiplie/divise l'intensité par 2
-        if (change > 0) I *= 2; else I /= 2;
+        if (change > 0) relativePower *= 2; else relativePower /= 2;
+        
+        // Sécurité pour ne pas descendre trop bas
+        if (relativePower < 0.125) { relativePower = 0.125; L = L - change; return; }
 
-        // Calcul de l'exposant du rapport (log10 de I/I0)
-        let exponent = Math.log10(I / I0).toFixed(2);
-
-        // Mise à jour interface
-        document.getElementById('dbVal').innerText = L;
-        document.getElementById('iVal').innerText = I.toExponential(1);
-        document.getElementById('ratioVal').innerHTML = `10<sup>${exponent}</sup>`;
-
-        // Mise à jour graphique
-        labels.push(L);
-        dataPoints.push(I);
-        if(labels.length > 8) { labels.shift(); dataPoints.shift(); }
-        chart.update();
+        updateViz();
     }
 
     function reset() {
-        L = 40; I = 1e-8;
-        labels.splice(0, labels.length, 40);
-        dataPoints.splice(0, dataPoints.length, 1e-8);
-        document.getElementById('dbVal').innerText = "40";
-        document.getElementById('iVal').innerText = "1.0e-8";
-        document.getElementById('ratioVal').innerHTML = "10<sup>4.00</sup>";
-        chart.update();
+        L = 40; relativePower = 1;
+        updateViz();
     }
+
+    // Initialisation
+    updateViz();
 </script>
 
 </body>
