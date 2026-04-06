@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Règle d'Or des Décibels</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 400px; }
+        h1 { color: #2c3e50; font-size: 1.5rem; }
+        .db-display { font-size: 4rem; font-weight: bold; color: #e67e22; margin: 10px 0; }
+        .intensity-display { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 20px; }
+        .controls { display: flex; justify-content: center; gap: 10px; }
+        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; transition: 0.2s; background: #3498db; color: white; }
+        button:hover { background: #2980b9; transform: scale(1.05); }
+        .rule { margin-top: 25px; padding: 10px; border-top: 2px dashed #bdc3c7; font-weight: bold; color: #27ae60; }
+        .visualizer { display: flex; justify-content: center; align-items: flex-end; height: 50px; gap: 5px; margin-top: 15px; }
+        .bar { width: 15px; background: #e67e22; border-radius: 3px 3px 0 0; transition: height 0.3s ease; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🔊 Simulateur d'Intensité</h1>
+    
+    <div class="db-display" id="dbText">40 dB</div>
+    <div class="intensity-display" id="intensityText">Intensité relative : 1</div>
+
+    <div class="visualizer" id="visualizer">
+        </div>
+
+    <div class="controls">
+        <button onclick="changeSound(-3)">- 3 dB</button>
+        <button onclick="changeSound(3)">+ 3 dB</button>
+    </div>
+
+    <div class="rule" id="ruleText">
+        Appuyez sur +3 dB pour voir l'énergie doubler !
+    </div>
+</div>
+
+<script>
+    let db = 40;
+    let relativeIntensity = 1;
+
+    function updateBars() {
+        const visualizer = document.getElementById('visualizer');
+        visualizer.innerHTML = '';
+        // On affiche un nombre de barres proportionnel à l'intensité relative
+        let numBars = Math.min(relativeIntensity, 16); 
+        for(let i=0; i < numBars; i++) {
+            let bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.height = '100%';
+            visualizer.appendChild(bar);
+        }
+    }
+
+    function changeSound(change) {
+        db += change;
+        
+        // Calcul de la règle d'or : +3dB = intensité x2
+        if (change === 3) relativeIntensity *= 2;
+        if (change === -3) relativeIntensity /= 2;
+
+        document.getElementById('dbText').innerText = db + " dB";
+        document.getElementById('intensityText').innerText = "Intensité relative : " + relativeIntensity;
+        
+        const rule = document.getElementById('ruleText');
+        if (change > 0) {
+            rule.innerText = "📈 +3 dB = Intensité x2 !";
+            rule.style.color = "#27ae60";
+        } else {
+            rule.innerText = "📉 -3 dB = Intensité /2 !";
+            rule.style.color = "#c0392b";
+        }
+        
+        updateBars();
+    }
+    
+    updateBars();
+</script>
+
+</body>
+</html>
