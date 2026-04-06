@@ -3,82 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Règle d'Or des Décibels</title>
+    <title>Animation Règle d'Or - dB vs Intensité</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 400px; }
-        h1 { color: #2c3e50; font-size: 1.5rem; }
-        .db-display { font-size: 4rem; font-weight: bold; color: #e67e22; margin: 10px 0; }
-        .intensity-display { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 20px; }
-        .controls { display: flex; justify-content: center; gap: 10px; }
-        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; transition: 0.2s; background: #3498db; color: white; }
-        button:hover { background: #2980b9; transform: scale(1.05); }
-        .rule { margin-top: 25px; padding: 10px; border-top: 2px dashed #bdc3c7; font-weight: bold; color: #27ae60; }
-        .visualizer { display: flex; justify-content: center; align-items: flex-end; height: 50px; gap: 5px; margin-top: 15px; }
-        .bar { width: 15px; background: #e67e22; border-radius: 3px 3px 0 0; transition: height 0.3s ease; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: #16213e; padding: 2rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); width: 80%; max-width: 800px; text-align: center; }
+        h1 { margin-bottom: 0.5rem; color: #4cc9f0; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; background: #0f3460; padding: 15px; border-radius: 10px; }
+        .stat-box { font-size: 1.2rem; }
+        .stat-value { display: block; font-size: 2.5rem; font-weight: bold; color: #4361ee; transition: 0.3s; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; justify-content: center; }
+        button { padding: 12px 25px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 8px; background: #4cc9f0; color: #1a1a2e; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #4361ee; color: white; transform: translateY(-3px); }
+        canvas { margin-top: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; }
+        .info-bubble { margin-top: 15px; font-style: italic; color: #a2d2ff; min-height: 24px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🔊 Simulateur d'Intensité</h1>
+<div class="container">
+    <h1>La Règle d'Or : +3 dB = Intensité x2</h1>
     
-    <div class="db-display" id="dbText">40 dB</div>
-    <div class="intensity-display" id="intensityText">Intensité relative : 1</div>
-
-    <div class="visualizer" id="visualizer">
-        </div>
-
-    <div class="controls">
-        <button onclick="changeSound(-3)">- 3 dB</button>
-        <button onclick="changeSound(3)">+ 3 dB</button>
+    <div class="stats">
+        <div class="stat-box">Niveau (dB) <span id="dbValue" class="stat-value">40</span></div>
+        <div class="stat-box">Intensité ($I$) <span id="intValue" class="stat-value">1</span></div>
     </div>
 
-    <div class="rule" id="ruleText">
-        Appuyez sur +3 dB pour voir l'énergie doubler !
+    <div style="height: 300px; width: 100%;">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div class="info-bubble" id="infoBubble">Appuyez sur +3 dB pour voir la courbe s'envoler !</div>
+
+    <div class="controls">
+        <button onclick="updateData(-3)">- 3 dB</button>
+        <button onclick="updateData(3)">+ 3 dB</button>
+        <button onclick="reset()" style="background: #f72585;">Reset</button>
     </div>
 </div>
 
 <script>
-    let db = 40;
-    let relativeIntensity = 1;
+    let currentDb = 40;
+    let currentInt = 1;
+    let labels = [40];
+    let dataPoints = [1];
 
-    function updateBars() {
-        const visualizer = document.getElementById('visualizer');
-        visualizer.innerHTML = '';
-        // On affiche un nombre de barres proportionnel à l'intensité relative
-        let numBars = Math.min(relativeIntensity, 16); 
-        for(let i=0; i < numBars; i++) {
-            let bar = document.createElement('div');
-            bar.className = 'bar';
-            bar.style.height = '100%';
-            visualizer.appendChild(bar);
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Intensité Sonore relative',
+                data: dataPoints,
+                borderColor: '#4cc9f0',
+                backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4, // Effet courbe arrondie
+                pointRadius: 6,
+                pointBackgroundColor: '#f72585'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: 'white' } },
+                x: { title: { display: true, text: 'Décibels (dB)', color: 'white' }, grid: { display: false }, ticks: { color: 'white' } }
+            },
+            plugins: { legend: { display: false } },
+            animation: { duration: 1000, easing: 'easeInOutQuart' }
         }
+    });
+
+    function updateData(change) {
+        currentDb += change;
+        
+        if (change === 3) currentInt *= 2;
+        else currentInt /= 2;
+
+        // Mise à jour des textes
+        document.getElementById('dbValue').innerText = currentDb;
+        document.getElementById('intValue').innerText = currentInt.toLocaleString();
+        
+        const bubble = document.getElementById('infoBubble');
+        bubble.innerText = change > 0 ? "📈 L'intensité a doublé !" : "📉 L'intensité a été divisée par deux !";
+
+        // Ajout au graphique
+        labels.push(currentDb);
+        dataPoints.push(currentInt);
+
+        // On garde seulement les 10 derniers points pour que ce soit lisible
+        if (labels.length > 10) {
+            labels.shift();
+            dataPoints.shift();
+        }
+
+        myChart.update();
     }
 
-    function changeSound(change) {
-        db += change;
-        
-        // Calcul de la règle d'or : +3dB = intensité x2
-        if (change === 3) relativeIntensity *= 2;
-        if (change === -3) relativeIntensity /= 2;
-
-        document.getElementById('dbText').innerText = db + " dB";
-        document.getElementById('intensityText').innerText = "Intensité relative : " + relativeIntensity;
-        
-        const rule = document.getElementById('ruleText');
-        if (change > 0) {
-            rule.innerText = "📈 +3 dB = Intensité x2 !";
-            rule.style.color = "#27ae60";
-        } else {
-            rule.innerText = "📉 -3 dB = Intensité /2 !";
-            rule.style.color = "#c0392b";
-        }
-        
-        updateBars();
+    function reset() {
+        currentDb = 40;
+        currentInt = 1;
+        labels.length = 0;
+        dataPoints.length = 0;
+        labels.push(40);
+        dataPoints.push(1);
+        document.getElementById('dbValue').innerText = 40;
+        document.getElementById('intValue').innerText = 1;
+        myChart.update();
     }
-    
-    updateBars();
 </script>
 
 </body>
